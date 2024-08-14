@@ -31,4 +31,4 @@ hyperparams = {
 
 
 if __name__ == '__main__':
-    run_tsp(hyperparams, '/save_path/')
+    run_tsp(hyperparams, './save_path/')
