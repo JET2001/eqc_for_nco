@@ -9,16 +9,16 @@ from config import BASE_PATH
 
 
 hyperparams = {
-    'n_vars': 10,
-    'episodes': 5000,
-    'batch_size': 10,
-    'epsilon': 1,
-    'epsilon_decay': 0.99,
-    'epsilon_min': 0.01,
-    'gamma': 0.9,
-    'update_after': 10,
-    'update_target_after': 30,
-    'learning_rate_in': 0.00001,
+    'n_vars': 10, # length of tour
+    'episodes': 5000, # total episodes
+    'batch_size': 10, # DQN batch size
+    'epsilon': 1, # epsilon greedy policy? 
+    'epsilon_decay': 0.99, # eps greedy decay
+    'epsilon_min': 0.01, # eps greedy min
+    'gamma': 0.9, # discounted factor of return
+    'update_after': 10,  
+    'update_target_after': 30, 
+    'learning_rate_in': 0.00001, # 1e-5
     'n_layers': 1,
     'epsilon_schedule': 'fast',
     'memory_length': 10000,

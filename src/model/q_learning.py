@@ -15,6 +15,9 @@ class CircuitType(Enum):
 
 
 class QLearning:
+    '''
+    Q-Learning Module
+    '''
     def __init__(self, hyperparams, save=True, save_as=None, test=False, path=BASE_PATH):
         self.save = save
         self.save_as = save_as
@@ -63,7 +66,7 @@ class QLearning:
             self.w_idx.append(self.optimizers.index(self.optimizer_output))
 
         self.loss_fun = tf.keras.losses.mse
-
+        # store past experiences (replay buffer)
         self.memory = self.initialize_memory()
         self.initialize_save_dir()
 
@@ -85,6 +88,10 @@ class QLearning:
         return memory
 
     def add_to_memory(self, state, action, reward, next_state, done):
+        '''
+        self.interaction is a namedtuple(
+            'interaction', ('state', 'action', 'reward', 'next_state', 'done', 'partial_tour', 'edge_weights'))
+        '''
         transition = self.interaction(
             state, action, reward, next_state, float(done))
         self.memory.append(transition)

@@ -5,8 +5,7 @@ scikit-learn==1.0.1
 tensorboard==2.5.0
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.0
-qiskit==0.
-31.0
+qiskit==0.31.0
 qiskit-aer==0.9.1
 qiskit-aqua==0.9.5
 qiskit-ibmq-provider==0.17.0

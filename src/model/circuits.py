@@ -10,7 +10,7 @@ def graph_encoding_circuit(edges, qubits, n_layers, data_params):
     circuit = cirq.Circuit()
     circuit += cirq.H.on_each(qubits)
 
-    for layer in range(n_layers):
+    for layer in range(n_layers): 
         edge_weights = data_params[layer][-1]
         for edge_ix, edge in enumerate(edges):
             circuit.append(

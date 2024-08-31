@@ -4,6 +4,7 @@ import numpy as np
 
 
 class TrainableRescaling(tf.keras.layers.Layer):
+    '''adjust the scale of the input data / features dynamically during training'''
     def __init__(self, input_dim, trainable_obs_weight):
         super(TrainableRescaling, self).__init__()
         self.input_dim = input_dim

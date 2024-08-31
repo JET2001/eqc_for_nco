@@ -8,6 +8,11 @@ from src.model.tsp_q_learning import QLearningTsp, QLearningTspAnalytical
 
 
 def run_tsp(hyperparams, path):
+    '''
+    Runs the TSP.
+    - hyperparams - params from Q-Learning
+    - path - The file paths where results are saved.
+    '''
     save = hyperparams.get('save', True)
     save_as = hyperparams.get('save_as')
     test = hyperparams.get('test', False)
@@ -18,7 +23,7 @@ def run_tsp(hyperparams, path):
 
     if test:
         save_as = 'dummy'
-
+    
     for i in range(hyperparams.get('repetitions', 1)):
         save_as_instance = copy(save_as)
         if hyperparams.get('repetitions', 1) > 1:
