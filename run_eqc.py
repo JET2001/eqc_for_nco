@@ -9,7 +9,7 @@ from config import BASE_PATH
 
 
 hyperparams = {
-    'n_vars': 10, # length of tour
+    'n_vars': 5, # length of tour
     'episodes': 5000, # total episodes
     'batch_size': 10, # DQN batch size
     'epsilon': 1, # epsilon greedy policy? 
@@ -24,7 +24,7 @@ hyperparams = {
     'memory_length': 10000,
     'num_instances': 100,
     'circuit_type': CircuitType.EQC,
-    'data_path': BASE_PATH + 'tsp/tsp_10_train/tsp_10_reduced_train.pickle',
+    'data_path': BASE_PATH + 'tsp/tsp_5_train/tsp_5_reduced_train.pickle',
     'repetitions': 1,
     'save': False,
     'test': True

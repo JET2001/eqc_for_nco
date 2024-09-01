@@ -73,7 +73,6 @@ class QLearningTsp(QLearning):
     def generate_neqc_model(self, is_target_model=False):
         '''
         Creates a model for the ansatz NEQC
-        
         '''
         name_prefix = ''
         if is_target_model:
@@ -440,7 +439,7 @@ class QLearningTsp(QLearning):
             for edge, exp_val in zip(self.fully_connected_qubits, exps):
                 batch_ix_exp[edge] = exp_val
             indexed_expectations.append(batch_ix_exp)
-
+        
         batch_q_vals = []
         for tour_ix, partial_tour in enumerate(partial_tours):
             q_vals = []
@@ -548,7 +547,7 @@ class QLearningTsp(QLearning):
         # uses the model to predict the expectations ("exp_values_future") for 
         # the next_states qval
         exp_values_future = self.model([tfq.convert_to_tensor([cirq.Circuit()] * self.batch_size), next_states])
-        # 
+        
         future_rewards = tf.convert_to_tensor(self.q_vals_from_expectations(
             partial_tours, edge_weights, exp_values_future), dtype=tf.float64)
         # done is a flag = will be set to 1 the episode is complete, and future
@@ -563,6 +562,7 @@ class QLearningTsp(QLearning):
         with tf.GradientTape() as tape:
             tape.watch(self.model.trainable_variables)
             exp_values = self.model([tfq.convert_to_tensor([cirq.Circuit()]*self.batch_size), states])
+            
             # print("states = ", states)
             # print("exp values = ", exp_values[0], exp_values.shape)
             exp_val_masks = self.get_masks_for_actions(edge_weights, partial_tours)
@@ -598,7 +598,7 @@ class QLearningTsp(QLearning):
             for optimizer, w in zip(self.optimizers, self.w_idx):
                 optimizer.apply_gradients([(grads[w], self.model.trainable_variables[w])])
         print("*"*20)
-        input()
+        # input()
         return loss.numpy()
 
     def perform_episodes(self, num_instances):
@@ -611,6 +611,11 @@ class QLearningTsp(QLearning):
         # is considered solved.
         self.meta['env_solved'] = False
         
+        self.exp_vals = dict()
+        for i in range(self.n_vars-1):
+            for j in range(i+1, self.n_vars):
+                self.exp_vals[i,j] = list()
+        self.exp_vals['x'] = list()
         
         with open(self.data_path, 'rb') as file:
             data = pickle.load(file)
@@ -629,7 +634,8 @@ class QLearningTsp(QLearning):
         running_avg = 0
 
         for episode in range(self.episodes):
-            instance_number = random.randint(0, num_instances-1)
+            # instance_number = random.randint(0, num_instances-1)
+            instance_number = 0
             tsp_graph_nodes = x_train[instance_number]
             optimal_tour_length = compute_tour_length(
                 tsp_graph_nodes, # if start node != end 
@@ -658,7 +664,25 @@ class QLearningTsp(QLearning):
             tour_edges = []
             step_rewards = []
             available_nodes = list(range(1, self.n_vars)) # all nodes except starting is available.
+            state_list = self.graph_to_list(
+                tsp_graph_nodes, fully_connected_edges, edge_weights,
+                available_nodes, node_to_qubit_map)
             
+            print(f"episode {episode} " + "*"*10)
+            # print("edge_weights = ", edge_weights)
+            # print("edge weights ix = ", edge_weights_ix)
+            state_tensor = tf.convert_to_tensor(state_list)
+            state_tensor = tf.expand_dims(state_tensor, 0)
+            exp = self.model([tfq.convert_to_tensor([cirq.Circuit()]), state_tensor])
+            exp = exp.numpy()
+            
+            assert exp.shape == (1, 10), f"wrong = exp.shape is {exp.shape}"
+            k = 0
+            for i in range(self.n_vars - 1):
+                for j in range(i+1, self.n_vars):
+                    self.exp_vals[i, j].append(exp[0,k])
+                    k += 1
+            self.exp_vals['x'].append(episode)
             # Constructs the tour
             for i in range(self.n_vars):
                 prev_tour = copy.deepcopy(tour)
@@ -746,8 +770,8 @@ class QLearningTsp(QLearning):
                 running_avg = np.mean(ratio_history)
             # maintain a running avg of the 100 most recent episodes
             running_avgs.append(running_avg)
-
-            if len(ratio_history) >= 100 and running_avg <= 1.05:
+            
+            if len(ratio_history) >= 100 and running_avg <= 1.02:
                 print(f"Environment solved in {episode+1} episodes!")
                 self.meta['env_solved'] = True
                 if self.save:
@@ -761,7 +785,45 @@ class QLearningTsp(QLearning):
             plt.xlabel("Episode")
             plt.title("Running average over past 100 episodes")
             plt.show()
+            
+            for key in self.exp_vals.keys():
+                if key == 'x': continue
+                plt.figure(figsize = (7,5))
+                plt.xlabel('Episode No')
+                plt.ylabel(f'E(Z{key[0]} Z{key[1]})')
+                plt.title('Expectation of the edge over episodes at the initial state with only zero in the partial tour')
+                plt.plot(self.exp_vals['x'], self.exp_vals[key])
+                plt.savefig(f"new_figs/exps/exp-{key}.png")                
 
+            print(self.exp_vals)
+            for key in self.exp_vals.keys():
+                print(key, len(self.exp_vals[key]))
+            input()
+            plt.figure(figsize = (7,5))
+            for key in [(0,1), (0,2), (0,3), (0,4)]:
+                plt.plot(self.exp_vals['x'], self.exp_vals[key], label = f'{key}' )
+            plt.xlabel('Episode No')
+            plt.ylabel(f'Expectation')
+            plt.title('Expectation of the edge over episodes at the initial state with only zero in the partial tour')
+            plt.legend()
+            plt.savefig(f"new_figs/exps/comparing_main_edges.png") 
+            
+            plt.figure(figsize=(7,5))
+            instance = x_train[0]
+            plt.scatter([x[0] for x in instance], [x[1] for x in instance])
+            tour = [int(x-1) for x in y_train[0]]
+            for i in range(len(tour) - 1):
+                plt.plot([instance[tour[i]][0], instance[tour[i+1]][0]], [instance[tour[i]][1], instance[tour[i+1]][1]], alpha = 0.5)            
+            plt.legend()
+            plt.xlim(0, 1)
+            plt.xlabel("x")
+            plt.ylim(0, 1)
+            plt.ylabel('y')
+            plt.savefig(f"new_figs/exps/instance0.png")
+            
+            print("Best tour = ", self.meta['best_tour'])
+            print("instance = ", x_train[0])
+            print("optimal tour = ", [int(x-1) for x in y_train[0]])
 
 class QLearningTspAnalytical(QLearning):
     def __init__(
@@ -949,7 +1011,8 @@ class QLearningTspAnalytical(QLearning):
         running_avg = 0
 
         for episode in range(self.episodes):
-            instance_number = random.randint(0, num_instances-1)
+            # instance_number = random.randint(0, num_instances-1)
+            instance_number = 0
             tsp_graph_nodes = x_train[instance_number]
             optimal_tour_length = compute_tour_length(
                 tsp_graph_nodes, [int(x - 1) for x in y_train[instance_number][:-1]])
@@ -988,7 +1051,8 @@ class QLearningTspAnalytical(QLearning):
                     done = 0 if len(available_nodes) > 1 else 1
                     transition = (
                         edge_weights_ix, next_node, reward, edge_weights_ix,
-                        done, new_tour_edges, edge_weights_ix)
+                        done, new_tour_edges, edge_weights_ix
+                    )
                     self.memory.append(transition)
 
                 if len(available_nodes) == 1:
@@ -1044,7 +1108,7 @@ class QLearningTspAnalytical(QLearning):
 
             running_avgs.append(running_avg)
 
-            if len(ratio_history) >= 100 and running_avg <= 1.05:
+            if len(ratio_history) >= 100 and running_avg <= 1.02:
                 print(f"Environment solved in {episode+1} episodes!")
                 self.meta['env_solved'] = True
                 if self.save:
