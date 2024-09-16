@@ -473,19 +473,19 @@ class QLearningTsp(QLearning):
                 else:
                     q_val = -10000 # node already selected (large negative reward)
                 q_vals.append(q_val)
-            print("q_vals = ", q_vals, len(q_vals))
+            # print("q_vals = ", q_vals, len(q_vals))
             batch_q_vals.append(q_vals)
-        print("batch_q_vals shape =",  len(batch_q_vals))
-        print("*"*20)
+        # print("batch_q_vals shape =",  len(batch_q_vals))
+        # print("*"*20)
         # input()
         return np.asarray(batch_q_vals)
 
     def get_action(self, state_tensor, available_nodes, partial_tour, edge_weights):
         print("get_action!")
-        print("state_tensor = ", state_tensor)
+        # print("state_tensor = ", state_tensor)
         #epsilon greedy
         if np.random.uniform() < self.epsilon:
-            print("random!")
+            # print("random!")
             action = choice(available_nodes) # select random action
         else:
             print("selecting max qval")
@@ -531,8 +531,11 @@ class QLearningTsp(QLearning):
 
     def train_step(self):
         training_batch = choices(self.memory, k=self.batch_size)
+        # print("Original batch = ", training_batch)
         training_batch = self.interaction(*zip(*training_batch))
-
+        # print("Batch after = ", training_batch)
+        # print("*"*20)
+        # input()
         states = [x for x in training_batch.state]
         rewards = np.asarray([x for x in training_batch.reward], dtype=np.float32)
         next_states = [x for x in training_batch.next_state]
@@ -554,39 +557,46 @@ class QLearningTsp(QLearning):
         # rewards is not considered.
         target_q_values = rewards + (
                 self.gamma * tf.reduce_max(future_rewards, axis=1) * (1.0 - done))
-        print("training step!")
-        print("self.model.trainable_Variables = ", self.model.trainable_variables)
+        # print("target_Q_va")
         # record operations for automatic differentiation
         # which allows calculations of gradients with respect to the model's
         # tunable variables
         with tf.GradientTape() as tape:
             tape.watch(self.model.trainable_variables)
             exp_values = self.model([tfq.convert_to_tensor([cirq.Circuit()]*self.batch_size), states])
-            
             # print("states = ", states)
             # print("exp values = ", exp_values[0], exp_values.shape)
             exp_val_masks = self.get_masks_for_actions(edge_weights, partial_tours)
-            print("exp val masks = ", exp_val_masks, exp_val_masks.shape)
+            tmp = tf.multiply(exp_values, exp_val_masks)
+            # print("exp val masks = ", exp_val_masks, exp_val_masks.shape)
+            print("masked expectations = ", tmp)
+            input()
             q_values_masked = tf.reduce_sum(tf.multiply(exp_values, exp_val_masks), axis=1)
-            print("q_values_masked = ", q_values_masked, q_values_masked.shape)
+            print("q_values_shape ", q_values_masked.shape)
             
             loss = self.loss_fun(target_q_values, q_values_masked)
-            print("loss = ", loss)
+            k = 0
+            for i in range(self.n_vars-1):
+                for j in range(i+1, self.n_vars):
+                    self.exp_vals[i, j].append(tf.reduce_sum(exp_values[:, k]).numpy())
+                    self.q_vals[i, j].append(tf.reduce_sum(tmp[:, k]).numpy())
+                    k+=1
+            # print("loss = ", loss)
             
-            print("one example:")
-            idx = 0
-            print("idx = ", idx)
-            print("states[idx] = ", states[idx])
-            print("exp_values[idx] = ", exp_values[idx])
-            print("exp_val_masks[idx] = ", exp_val_masks[idx])
-            print("q_values_masked[idx] = ", q_values_masked[idx])
-            idx = 1
-            print("*"*10)
-            print("idx = ", idx)
-            print("states[idx] = ", states[idx])
-            print("exp_values[idx] = ", exp_values[idx])
-            print("exp_val_masks[idx] = ", exp_val_masks[idx])
-            print("q_values_masked[idx] = ", q_values_masked[idx])
+            # print("one example:")
+            # idx = 0
+            # print("idx = ", idx)
+            # print("states[idx] = ", states[idx])
+            # print("exp_values[idx] = ", exp_values[idx])
+            # print("exp_val_masks[idx] = ", exp_val_masks[idx])
+            # print("q_values_masked[idx] = ", q_values_masked[idx])
+            # idx = 1
+            # print("*"*10)
+            # print("idx = ", idx)
+            # print("states[idx] = ", states[idx])
+            # print("exp_values[idx] = ", exp_values[idx])
+            # print("exp_val_masks[idx] = ", exp_val_masks[idx])
+            # print("q_values_masked[idx] = ", q_values_masked[idx])
             
         grads = tape.gradient(loss, self.model.trainable_variables)
         print("number of optimizers = ", len(self.optimizers))
@@ -612,10 +622,11 @@ class QLearningTsp(QLearning):
         self.meta['env_solved'] = False
         
         self.exp_vals = dict()
+        self.q_vals = dict()
         for i in range(self.n_vars-1):
             for j in range(i+1, self.n_vars):
                 self.exp_vals[i,j] = list()
-        self.exp_vals['x'] = list()
+                self.q_vals[i,j] = list()
         
         with open(self.data_path, 'rb') as file:
             data = pickle.load(file)
@@ -634,8 +645,8 @@ class QLearningTsp(QLearning):
         running_avg = 0
 
         for episode in range(self.episodes):
-            # instance_number = random.randint(0, num_instances-1)
-            instance_number = 0
+            instance_number = random.randint(0, num_instances-1)
+            # instance_number = 0
             tsp_graph_nodes = x_train[instance_number]
             optimal_tour_length = compute_tour_length(
                 tsp_graph_nodes, # if start node != end 
@@ -676,13 +687,13 @@ class QLearningTsp(QLearning):
             exp = self.model([tfq.convert_to_tensor([cirq.Circuit()]), state_tensor])
             exp = exp.numpy()
             
-            assert exp.shape == (1, 10), f"wrong = exp.shape is {exp.shape}"
-            k = 0
-            for i in range(self.n_vars - 1):
-                for j in range(i+1, self.n_vars):
-                    self.exp_vals[i, j].append(exp[0,k])
-                    k += 1
-            self.exp_vals['x'].append(episode)
+            # assert exp.shape == (1, 10), f"wrong = exp.shape is {exp.shape}"
+            # k = 0
+            # for i in range(self.n_vars - 1):
+            #     for j in range(i+1, self.n_vars):
+            #         self.exp_vals[i, j].append(exp[0,k])
+            #         k += 1
+            # self.exp_vals['x'].append(episode)
             # Constructs the tour
             for i in range(self.n_vars):
                 prev_tour = copy.deepcopy(tour)
@@ -771,7 +782,7 @@ class QLearningTsp(QLearning):
             # maintain a running avg of the 100 most recent episodes
             running_avgs.append(running_avg)
             
-            if len(ratio_history) >= 100 and running_avg <= 1.02:
+            if len(ratio_history) >= 100 and running_avg <= 1.25:
                 print(f"Environment solved in {episode+1} episodes!")
                 self.meta['env_solved'] = True
                 if self.save:
@@ -786,40 +797,88 @@ class QLearningTsp(QLearning):
             plt.title("Running average over past 100 episodes")
             plt.show()
             
+            xs = [i for i in range(len(self.exp_vals[(0,1)]))]
             for key in self.exp_vals.keys():
-                if key == 'x': continue
+                if key[0] != 1 and key[1] != 1: continue
                 plt.figure(figsize = (7,5))
-                plt.xlabel('Episode No')
+                plt.xlabel('Train step')
                 plt.ylabel(f'E(Z{key[0]} Z{key[1]})')
-                plt.title('Expectation of the edge over episodes at the initial state with only zero in the partial tour')
-                plt.plot(self.exp_vals['x'], self.exp_vals[key])
-                plt.savefig(f"new_figs/exps/exp-{key}.png")                
+                plt.title(f'Expectation of the edge {key} over train steps')
+                plt.plot(xs, self.exp_vals[key])
+                plt.plot(xs, [0 for _ in xs], alpha = 0.5)
+                plt.savefig(f"new_figs/exps/exp-{key}-tsp10.png")
+                
+            for key in self.exp_vals.keys():
+                if key[0] != 9 and key[1] != 9: continue
+                plt.figure(figsize = (7,5))
+                plt.xlabel('Train step')
+                plt.ylabel(f'E(Z{key[0]} Z{key[1]})')
+                plt.title(f'Expectation of the edge {key} over train steps')
+                plt.plot(xs, self.exp_vals[key])
+                plt.plot(xs, [0 for _ in xs], alpha = 0.5)
+                plt.savefig(f"new_figs/exps/exp-{key}-tsp10.png")                
+                
 
             print(self.exp_vals)
             for key in self.exp_vals.keys():
                 print(key, len(self.exp_vals[key]))
-            input()
             plt.figure(figsize = (7,5))
-            for key in [(0,1), (0,2), (0,3), (0,4)]:
-                plt.plot(self.exp_vals['x'], self.exp_vals[key], label = f'{key}' )
-            plt.xlabel('Episode No')
+            for key in [(0,1), (0,2), (0,3), (0,4), (0,5), (0,6), (0,7), (0,8), (0,9)]:
+                plt.plot(xs, self.exp_vals[key], label = f'{key}' )
+            plt.xlabel('Train step')
             plt.ylabel(f'Expectation')
             plt.title('Expectation of the edge over episodes at the initial state with only zero in the partial tour')
             plt.legend()
-            plt.savefig(f"new_figs/exps/comparing_main_edges.png") 
+            plt.savefig(f"new_figs/exps/comparing_edges_from_zero_tsp10.png") 
+            
+            for key in self.q_vals.keys():
+                if key[0] != 1 and key[1] != 1: continue
+                plt.figure(figsize = (7,5))
+                plt.xlabel('Train step')
+                plt.ylabel('Q value masked')
+                plt.title('Qvalue of edge {key} over train steps')
+                plt.plot(xs, self.q_vals[key])
+                plt.savefig(f'new_figs/qvals/qval-{key}-tsp10.png')
+            
+            for key in self.q_vals.keys():
+                if key[0] != 9 and key[1] != 9: continue
+                plt.figure(figsize = (7,5))
+                plt.xlabel('Train step')
+                plt.ylabel('Q value masked')
+                plt.title('Qvalue of edge {key} over train steps')
+                plt.plot(xs, self.q_vals[key])
+                plt.plot(xs, [0 for x in xs], alpha = 0.5)
+                plt.savefig(f'new_figs/qvals/qval-{key}-tsp10.png')
+            
+            plt.figure(figsize=(7,5))
+            for key in [(0,1), (0,2), (0,3), (0,4), (0,5), (0,6), (0,7), (0,8), (0,9)]:
+                plt.plot(xs, self.q_vals[key], label = f'{key}')
+            plt.xlabel('Train step')
+            plt.ylabel(f'Masked q value')
+            plt.legend()
+            plt.savefig(f"new_figs/qvals/comparing_edges_from_tsp10.png") 
             
             plt.figure(figsize=(7,5))
             instance = x_train[0]
             plt.scatter([x[0] for x in instance], [x[1] for x in instance])
-            tour = [int(x-1) for x in y_train[0]]
-            for i in range(len(tour) - 1):
-                plt.plot([instance[tour[i]][0], instance[tour[i+1]][0]], [instance[tour[i]][1], instance[tour[i+1]][1]], alpha = 0.5)            
+            ax = plt.gca()
+            for i in range(len(instance)):
+                ax.annotate(i, instance[i])
+            opt_tour = [int(x-1) for x in y_train[0]]
+            n = len(opt_tour)
+            for i in range(len(opt_tour)):
+                plt.plot([instance[opt_tour[i]][0], instance[opt_tour[(i+1)%n]][0]], [instance[opt_tour[i]][1], instance[opt_tour[(i+1)%n]][1]], alpha = 0.5, c = 'green')
+                
+            best_tour = self.meta['best_tour']
+            for i in range(len(best_tour) - 1):
+                plt.plot([instance[best_tour[i]][0], instance[best_tour[i+1]][0]], [instance[best_tour[i]][1], instance[best_tour[i+1]][1]], alpha = 0.7, c= 'blue')        
+            
             plt.legend()
             plt.xlim(0, 1)
             plt.xlabel("x")
             plt.ylim(0, 1)
             plt.ylabel('y')
-            plt.savefig(f"new_figs/exps/instance0.png")
+            plt.savefig(f"new_figs/exps/instance0_tsp10.png")
             
             print("Best tour = ", self.meta['best_tour'])
             print("instance = ", x_train[0])
