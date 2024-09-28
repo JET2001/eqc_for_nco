@@ -6,13 +6,6 @@ services:
       dockerfile: docker/Dockerfile
     image: eqc-for-nco:latest
     container_name: eqc-for-nco-container
-    ports:
-      - 8888:8888
-      - 8000:8000
-      - 83:83
-      - 80:80
-      - 50:50
-      - 443:443
     volumes:
       - ./:/home
     network_mode: bridge

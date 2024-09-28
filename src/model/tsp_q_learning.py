@@ -6,7 +6,7 @@ from random import choice, choices
 
 import cirq
 import sympy
-import tensorflow as tf
+import tensorflow  as tf
 import tensorflow_quantum as tfq
 import numpy as np
 
@@ -73,7 +73,6 @@ class QLearningTsp(QLearning):
     def generate_neqc_model(self, is_target_model=False):
         '''
         Creates a model for the ansatz NEQC
-        
         '''
         name_prefix = ''
         if is_target_model:
@@ -327,7 +326,7 @@ class QLearningTsp(QLearning):
                         flattened_data_symbols.append(str(symbol))
                 else:
                     flattened_data_symbols.append(str(item))
-        print("flattened_data_symbols = ", flattened_data_symbols)
+        # print("flattened_data_symbols = ", flattened_data_symbols)
         
         flattened_symbols = []
         for layer_item in symbols:
@@ -337,8 +336,8 @@ class QLearningTsp(QLearning):
                         flattened_symbols.append(str(symbol))
                 else:
                     flattened_symbols.append(str(item))
-        print("Flattened symbols = ", flattened_symbols)
-        print("trainable scaling = ", self.trainable_scaling)
+        # print("Flattened symbols = ", flattened_symbols)
+        # print("trainable scaling = ", self.trainable_scaling)
         '''
         The encoding layer is controlling both the classical data reuploading
         and the parameterization of the quantum circuit's trainable parameters.
@@ -423,15 +422,15 @@ class QLearningTsp(QLearning):
         return vals
 
     def q_vals_from_expectations(self, partial_tours, edge_weights, expectations):
-        print("q-vals from expectations!")
-        print("partial_tours = ", partial_tours)
-        print("edge weights = ", edge_weights)
-        print("expectations =", expectations)
-        print("*"*20)
+        # print("q-vals from expectations!")
+        # print("partial_tours = ", partial_tours)
+        # print("edge weights = ", edge_weights)
+        # print("expectations =", expectations)
+        # print("*"*20)
         # input()
         expectations = expectations.numpy() # get numpy from tensor
-        print("expectations = ", expectations, expectations.shape)
-        print("partial_tours = ", partial_tours)
+        # print("expectations = ", expectations, expectations.shape)
+        # print("partial_tours = ", partial_tours)
         indexed_expectations = []
         # separate the expectations according to batch
         # the zero-th dimension of the expectation corresponds to the batch dimension.
@@ -440,16 +439,18 @@ class QLearningTsp(QLearning):
             for edge, exp_val in zip(self.fully_connected_qubits, exps):
                 batch_ix_exp[edge] = exp_val
             indexed_expectations.append(batch_ix_exp)
-
+        
         batch_q_vals = []
         for tour_ix, partial_tour in enumerate(partial_tours):
             q_vals = []
             # Consider every possible extnsion of the partial tour by checking that
             # node i is part of the tour.
-            # If i can be found on any edge, set the qval of the next edge being i to be -10000
-            for i in range(self.n_vars):
+            # If i can be found on any edge, set the qval of the next edge being i to be -10000 
+            # partial_tour = [0,1,5]
+            # [1,4]
+            for i in range(self.n_vars): # i = 0, 1, 2,3, 4, 5
                 node_in_tour = False
-                for edge in partial_tour:
+                for edge in partial_tour: # 
                     if i in edge:
                         node_in_tour = True
                 # If node is in partial tour,
@@ -474,35 +475,35 @@ class QLearningTsp(QLearning):
                 else:
                     q_val = -10000 # node already selected (large negative reward)
                 q_vals.append(q_val)
-            print("q_vals = ", q_vals, len(q_vals))
+            # print("q_vals = ", q_vals, len(q_vals))
             batch_q_vals.append(q_vals)
-        print("batch_q_vals shape =",  len(batch_q_vals))
-        print("*"*20)
+        # print("batch_q_vals shape =",  len(batch_q_vals))
+        # print("*"*20)
         # input()
         return np.asarray(batch_q_vals)
 
     def get_action(self, state_tensor, available_nodes, partial_tour, edge_weights):
-        print("get_action!")
-        print("state_tensor = ", state_tensor)
+        # print("get_action!")
+        # print("state_tensor = ", state_tensor)
         #epsilon greedy
         if np.random.uniform() < self.epsilon:
-            print("random!")
+            # print("random!")
             action = choice(available_nodes) # select random action
         else:
-            print("selecting max qval")
+            # print("selecting max qval")
             state_tensor = tf.convert_to_tensor(state_tensor)
             state_tensor = tf.expand_dims(state_tensor, 0)
             expectations = self.model([tfq.convert_to_tensor([cirq.Circuit()]), state_tensor])
             q_vals = self.q_vals_from_expectations([partial_tour], [edge_weights], expectations)[0]
             action = np.argmax(q_vals) # select best valued action
-        print("get_action: ", action)
+        # print("get_action: ", action)
         # input()
-        print("*"*10)
+        # print("*"*10)
         return action
 
     @staticmethod
     def get_masks_for_actions(edge_weights, partial_tours):
-        print("get_masks_for_Action")
+        # print("get_masks_for_Action")
         batch_masks = []
         for tour_ix, partial_tour in enumerate(partial_tours):
             mask = []
@@ -516,11 +517,11 @@ class QLearningTsp(QLearning):
                     mask.append(0)
 
             batch_masks.append(mask)
-            if tour_ix == 0 or tour_ix == 5:
-                print("tour_ix = ", tour_ix)
-                print("partial_tours = ", partial_tours[tour_ix])
-                print("mask =", mask)
-        print("*"*10)
+            # if tour_ix == 0 or tour_ix == 5:
+            #     print("tour_ix = ", tour_ix)
+            #     print("partial_tours = ", partial_tours[tour_ix])
+            #     print("mask =", mask)
+        # print("*"*10)
         return np.asarray(batch_masks)
 
     @staticmethod
@@ -532,8 +533,11 @@ class QLearningTsp(QLearning):
 
     def train_step(self):
         training_batch = choices(self.memory, k=self.batch_size)
+        # print("Original batch = ", training_batch)
         training_batch = self.interaction(*zip(*training_batch))
-
+        # print("Batch after = ", training_batch)
+        # print("*"*20)
+        # input()
         states = [x for x in training_batch.state]
         rewards = np.asarray([x for x in training_batch.reward], dtype=np.float32)
         next_states = [x for x in training_batch.next_state]
@@ -545,18 +549,37 @@ class QLearningTsp(QLearning):
         rewards = tf.convert_to_tensor(rewards, dtype=tf.float64)
         next_states = tf.convert_to_tensor(next_states)
         done = tf.convert_to_tensor(done, dtype=tf.float64)
+        # print("states = ", states, states.shape)
+        # print("rewards = ", rewards, rewards.shape)
+        # print("next state = ", next_states, next_states.shape)
+        # print("done = ", done, done.shape)
+        
+        # input("***"*8)
         # uses the model to predict the expectations ("exp_values_future") for 
         # the next_states qval
+        print("next_states = ", next_states)
+        input()
         exp_values_future = self.model([tfq.convert_to_tensor([cirq.Circuit()] * self.batch_size), next_states])
-        # 
+        
+        print(exp_values_future, exp_values_future.shape)
+        input()
         future_rewards = tf.convert_to_tensor(self.q_vals_from_expectations(
             partial_tours, edge_weights, exp_values_future), dtype=tf.float64)
+        
+        print(future_rewards, future_rewards.shape)
+        input()
         # done is a flag = will be set to 1 the episode is complete, and future
         # rewards is not considered.
         target_q_values = rewards + (
                 self.gamma * tf.reduce_max(future_rewards, axis=1) * (1.0 - done))
-        print("training step!")
-        print("self.model.trainable_Variables = ", self.model.trainable_variables)
+        print(target_q_values, target_q_values.shape)
+        input()
+        # print("exp_values_future = ", exp_values_future, exp_values_future.shape)
+        # print("future rewards = ", future_rewards, future_rewards.shape)
+        # print("target q values =", target_q_values, target_q_values.shape)
+        
+        # input("***" * 8)
+        # print("target_Q_va")
         # record operations for automatic differentiation
         # which allows calculations of gradients with respect to the model's
         # tunable variables
@@ -566,39 +589,49 @@ class QLearningTsp(QLearning):
             # print("states = ", states)
             # print("exp values = ", exp_values[0], exp_values.shape)
             exp_val_masks = self.get_masks_for_actions(edge_weights, partial_tours)
-            print("exp val masks = ", exp_val_masks, exp_val_masks.shape)
+            tmp = tf.multiply(exp_values, exp_val_masks)
+            # print("exp val masks = ", exp_val_masks, exp_val_masks.shape)
+            # print("masked expectations = ", tmp)
             q_values_masked = tf.reduce_sum(tf.multiply(exp_values, exp_val_masks), axis=1)
-            print("q_values_masked = ", q_values_masked, q_values_masked.shape)
+            # print("q_values_shape ", q_values_masked.shape)
             
-            loss = self.loss_fun(target_q_values, q_values_masked)
+            loss = self.loss_fun(target_q_values, q_values_masked) # MSE
+            k = 0
+            # for i in range(self.n_vars-1):
+            #     for j in range(i+1, self.n_vars):
+            #         self.exp_vals[i, j].append(tf.reduce_sum(exp_values[:, k]).numpy())
+            #         self.q_vals[i, j].append(tf.reduce_sum(tmp[:, k]).numpy())
+            #         k+=1
+            # print("ep = ", ep)
             print("loss = ", loss)
             
-            print("one example:")
-            idx = 0
-            print("idx = ", idx)
-            print("states[idx] = ", states[idx])
-            print("exp_values[idx] = ", exp_values[idx])
-            print("exp_val_masks[idx] = ", exp_val_masks[idx])
-            print("q_values_masked[idx] = ", q_values_masked[idx])
-            idx = 1
-            print("*"*10)
-            print("idx = ", idx)
-            print("states[idx] = ", states[idx])
-            print("exp_values[idx] = ", exp_values[idx])
-            print("exp_val_masks[idx] = ", exp_val_masks[idx])
-            print("q_values_masked[idx] = ", q_values_masked[idx])
+            
+            # print("one example:")
+            # idx = 0
+            # print("idx = ", idx)
+            # print("states[idx] = ", states[idx])
+            # print("exp_values[idx] = ", exp_values[idx])
+            # print("exp_val_masks[idx] = ", exp_val_masks[idx])
+            # print("q_values_masked[idx] = ", q_values_masked[idx])
+            # idx = 1
+            # print("*"*10)
+            # print("idx = ", idx)
+            # print("states[idx] = ", states[idx])
+            # print("exp_values[idx] = ", exp_values[idx])
+            # print("exp_val_masks[idx] = ", exp_val_masks[idx])
+            # print("q_values_masked[idx] = ", q_values_masked[idx])
             
         grads = tape.gradient(loss, self.model.trainable_variables)
-        print("number of optimizers = ", len(self.optimizers))
-        print("optimizers = ", self.optimizers)
-        print("grads = ", grads, len(grads))
+        # print("number of optimizers = ", len(self.optimizers))
+        # print("optimizers = ", self.optimizers)
+        # print("grads = ", grads, len(grads))
         if len(self.optimizers) == 1:
             self.optimizers[0].apply_gradients(zip(grads, self.model.trainable_weights))
         else:
             for optimizer, w in zip(self.optimizers, self.w_idx):
                 optimizer.apply_gradients([(grads[w], self.model.trainable_variables[w])])
-        print("*"*20)
-        input()
+        # print("*"*20)
+        # input()
         return loss.numpy()
 
     def perform_episodes(self, num_instances):
@@ -611,6 +644,12 @@ class QLearningTsp(QLearning):
         # is considered solved.
         self.meta['env_solved'] = False
         
+        self.exp_vals = dict()
+        self.q_vals = dict()
+        for i in range(self.n_vars-1):
+            for j in range(i+1, self.n_vars):
+                self.exp_vals[i,j] = list()
+                self.q_vals[i,j] = list()
         
         with open(self.data_path, 'rb') as file:
             data = pickle.load(file)
@@ -630,6 +669,7 @@ class QLearningTsp(QLearning):
 
         for episode in range(self.episodes):
             instance_number = random.randint(0, num_instances-1)
+            # instance_number = 0
             tsp_graph_nodes = x_train[instance_number]
             optimal_tour_length = compute_tour_length(
                 tsp_graph_nodes, # if start node != end 
@@ -658,7 +698,25 @@ class QLearningTsp(QLearning):
             tour_edges = []
             step_rewards = []
             available_nodes = list(range(1, self.n_vars)) # all nodes except starting is available.
+            state_list = self.graph_to_list(
+                tsp_graph_nodes, fully_connected_edges, edge_weights,
+                available_nodes, node_to_qubit_map)
             
+            print(f"episode {episode} " + "*"*10)
+            # print("edge_weights = ", edge_weights)
+            # print("edge weights ix = ", edge_weights_ix)
+            state_tensor = tf.convert_to_tensor(state_list)
+            state_tensor = tf.expand_dims(state_tensor, 0)
+            exp = self.model([tfq.convert_to_tensor([cirq.Circuit()]), state_tensor])
+            exp = exp.numpy()
+            
+            # assert exp.shape == (1, 10), f"wrong = exp.shape is {exp.shape}"
+            # k = 0
+            # for i in range(self.n_vars - 1):
+            #     for j in range(i+1, self.n_vars):
+            #         self.exp_vals[i, j].append(exp[0,k])
+            #         k += 1
+            # self.exp_vals['x'].append(episode)
             # Constructs the tour
             for i in range(self.n_vars):
                 prev_tour = copy.deepcopy(tour)
@@ -746,14 +804,16 @@ class QLearningTsp(QLearning):
                 running_avg = np.mean(ratio_history)
             # maintain a running avg of the 100 most recent episodes
             running_avgs.append(running_avg)
-
-            if len(ratio_history) >= 100 and running_avg <= 1.05:
+            
+            if len(ratio_history) >= 100 and running_avg <= 1.25:
                 print(f"Environment solved in {episode+1} episodes!")
                 self.meta['env_solved'] = True
                 if self.save:
                     self.save_data(self.meta, tour_length_history, optimal_tour_length_history)
                 break
-
+            
+            
+            
         if self.test:
             import matplotlib.pyplot as plt
             plt.plot(running_avgs)
@@ -761,7 +821,93 @@ class QLearningTsp(QLearning):
             plt.xlabel("Episode")
             plt.title("Running average over past 100 episodes")
             plt.show()
+            
+            xs = [i for i in range(len(self.exp_vals[(0,1)]))]
+            for key in self.exp_vals.keys():
+                if key[0] != 1 and key[1] != 1: continue
+                plt.figure(figsize = (7,5))
+                plt.xlabel('Train step')
+                plt.ylabel(f'E(Z{key[0]} Z{key[1]})')
+                plt.title(f'Expectation of the edge {key} over train steps')
+                plt.plot(xs, self.exp_vals[key])
+                plt.plot(xs, [0 for _ in xs], alpha = 0.5)
+                plt.savefig(f"new_figs/exps/exp-{key}-tsp10.png")
+                
+            for key in self.exp_vals.keys():
+                if key[0] != 9 and key[1] != 9: continue
+                plt.figure(figsize = (7,5))
+                plt.xlabel('Train step')
+                plt.ylabel(f'E(Z{key[0]} Z{key[1]})')
+                plt.title(f'Expectation of the edge {key} over train steps')
+                plt.plot(xs, self.exp_vals[key])
+                plt.plot(xs, [0 for _ in xs], alpha = 0.5)
+                plt.savefig(f"new_figs/exps/exp-{key}-tsp10.png")                
+                
 
+            print(self.exp_vals)
+            for key in self.exp_vals.keys():
+                print(key, len(self.exp_vals[key]))
+            plt.figure(figsize = (7,5))
+            for key in [(0,1), (0,2), (0,3), (0,4), (0,5), (0,6), (0,7), (0,8), (0,9)]:
+                plt.plot(xs, self.exp_vals[key], label = f'{key}' )
+            plt.xlabel('Train step')
+            plt.ylabel(f'Expectation')
+            plt.title('Expectation of the edge over episodes at the initial state with only zero in the partial tour')
+            plt.legend()
+            plt.savefig(f"new_figs/exps/comparing_edges_from_zero_tsp10.png") 
+            
+            for key in self.q_vals.keys():
+                if key[0] != 1 and key[1] != 1: continue
+                plt.figure(figsize = (7,5))
+                plt.xlabel('Train step')
+                plt.ylabel('Q value masked')
+                plt.title('Qvalue of edge {key} over train steps')
+                plt.plot(xs, self.q_vals[key])
+                plt.savefig(f'new_figs/qvals/qval-{key}-tsp10.png')
+            
+            for key in self.q_vals.keys():
+                if key[0] != 9 and key[1] != 9: continue
+                plt.figure(figsize = (7,5))
+                plt.xlabel('Train step')
+                plt.ylabel('Q value masked')
+                plt.title('Qvalue of edge {key} over train steps')
+                plt.plot(xs, self.q_vals[key])
+                plt.plot(xs, [0 for x in xs], alpha = 0.5)
+                plt.savefig(f'new_figs/qvals/qval-{key}-tsp10.png')
+            
+            plt.figure(figsize=(7,5))
+            for key in [(0,1), (0,2), (0,3), (0,4), (0,5), (0,6), (0,7), (0,8), (0,9)]:
+                plt.plot(xs, self.q_vals[key], label = f'{key}')
+            plt.xlabel('Train step')
+            plt.ylabel(f'Masked q value')
+            plt.legend()
+            plt.savefig(f"new_figs/qvals/comparing_edges_from_tsp10.png") 
+            
+            plt.figure(figsize=(7,5))
+            instance = x_train[0]
+            plt.scatter([x[0] for x in instance], [x[1] for x in instance])
+            ax = plt.gca()
+            for i in range(len(instance)):
+                ax.annotate(i, instance[i])
+            opt_tour = [int(x-1) for x in y_train[0]]
+            n = len(opt_tour)
+            for i in range(len(opt_tour)):
+                plt.plot([instance[opt_tour[i]][0], instance[opt_tour[(i+1)%n]][0]], [instance[opt_tour[i]][1], instance[opt_tour[(i+1)%n]][1]], alpha = 0.5, c = 'green')
+                
+            best_tour = self.meta['best_tour']
+            for i in range(len(best_tour) - 1):
+                plt.plot([instance[best_tour[i]][0], instance[best_tour[i+1]][0]], [instance[best_tour[i]][1], instance[best_tour[i+1]][1]], alpha = 0.7, c= 'blue')        
+            
+            plt.legend()
+            plt.xlim(0, 1)
+            plt.xlabel("x")
+            plt.ylim(0, 1)
+            plt.ylabel('y')
+            plt.savefig(f"new_figs/exps/instance0_tsp10.png")
+            
+            print("Best tour = ", self.meta['best_tour'])
+            print("instance = ", x_train[0])
+            print("optimal tour = ", [int(x-1) for x in y_train[0]])
 
 class QLearningTspAnalytical(QLearning):
     def __init__(
@@ -950,6 +1096,7 @@ class QLearningTspAnalytical(QLearning):
 
         for episode in range(self.episodes):
             instance_number = random.randint(0, num_instances-1)
+            # instance_number = 0
             tsp_graph_nodes = x_train[instance_number]
             optimal_tour_length = compute_tour_length(
                 tsp_graph_nodes, [int(x - 1) for x in y_train[instance_number][:-1]])
@@ -988,7 +1135,8 @@ class QLearningTspAnalytical(QLearning):
                     done = 0 if len(available_nodes) > 1 else 1
                     transition = (
                         edge_weights_ix, next_node, reward, edge_weights_ix,
-                        done, new_tour_edges, edge_weights_ix)
+                        done, new_tour_edges, edge_weights_ix
+                    )
                     self.memory.append(transition)
 
                 if len(available_nodes) == 1:
@@ -1044,7 +1192,7 @@ class QLearningTspAnalytical(QLearning):
 
             running_avgs.append(running_avg)
 
-            if len(ratio_history) >= 100 and running_avg <= 1.05:
+            if len(ratio_history) >= 100 and running_avg <= 1.02:
                 print(f"Environment solved in {episode+1} episodes!")
                 self.meta['env_solved'] = True
                 if self.save:

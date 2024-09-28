@@ -85,6 +85,7 @@ class EquivariantLayer(tf.keras.layers.Layer):
             params,
             name="equivariant_layer"):
         super(EquivariantLayer, self).__init__(name=name)
+        print("params = ", params)
         self.num_input_params = num_input_params * circuit_depth
         self.num_params = 2 * circuit_depth
         self.circuit_depth = circuit_depth
@@ -102,6 +103,8 @@ class EquivariantLayer(tf.keras.layers.Layer):
 
         alphabetical_params = sorted(params)
         self.indices = tf.constant([params.index(a) for a in alphabetical_params])
+        # print(self.indices)
+        # input()
 
     def call(self, inputs):
         repeated_params = tf.repeat(self.params, repeats=self.param_repeats)
