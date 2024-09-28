@@ -7,11 +7,11 @@ def graph_encoding_circuit(edges, qubits, n_layers, data_params):
     Creates a quantum circuit that encodes graph data into the 
     quantum state of a system. 
     '''
-    print("graph encoding circuit!")
-    print("edges = ", edges)
-    print("qubits = ", qubits)
-    print("data_params = ", data_params)
-    input()
+    # print("graph encoding circuit!")
+    # print("edges = ", edges)
+    # print("qubits = ", qubits)
+    # print("data_params = ", data_params)
+    # input()
     circuit = cirq.Circuit()
     circuit += cirq.H.on_each(qubits)
 

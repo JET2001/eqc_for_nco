@@ -103,8 +103,8 @@ class EquivariantLayer(tf.keras.layers.Layer):
 
         alphabetical_params = sorted(params)
         self.indices = tf.constant([params.index(a) for a in alphabetical_params])
-        print(self.indices)
-        input()
+        # print(self.indices)
+        # input()
 
     def call(self, inputs):
         repeated_params = tf.repeat(self.params, repeats=self.param_repeats)
