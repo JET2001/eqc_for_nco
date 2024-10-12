@@ -557,23 +557,23 @@ class QLearningTsp(QLearning):
         # input("***"*8)
         # uses the model to predict the expectations ("exp_values_future") for 
         # the next_states qval
-        print("next_states = ", next_states)
-        input()
+        # print("next_states = ", next_states)
+        # input()
         exp_values_future = self.model([tfq.convert_to_tensor([cirq.Circuit()] * self.batch_size), next_states])
         
-        print(exp_values_future, exp_values_future.shape)
-        input()
+        # print(exp_values_future, exp_values_future.shape)
+        # input()
         future_rewards = tf.convert_to_tensor(self.q_vals_from_expectations(
             partial_tours, edge_weights, exp_values_future), dtype=tf.float64)
         
-        print(future_rewards, future_rewards.shape)
-        input()
+        # print(future_rewards, future_rewards.shape)
+        # input()
         # done is a flag = will be set to 1 the episode is complete, and future
         # rewards is not considered.
         target_q_values = rewards + (
                 self.gamma * tf.reduce_max(future_rewards, axis=1) * (1.0 - done))
-        print(target_q_values, target_q_values.shape)
-        input()
+        # print(target_q_values, target_q_values.shape)
+        # input()
         # print("exp_values_future = ", exp_values_future, exp_values_future.shape)
         # print("future rewards = ", future_rewards, future_rewards.shape)
         # print("target q values =", target_q_values, target_q_values.shape)
@@ -805,7 +805,7 @@ class QLearningTsp(QLearning):
             # maintain a running avg of the 100 most recent episodes
             running_avgs.append(running_avg)
             
-            if len(ratio_history) >= 100 and running_avg <= 1.25:
+            if len(ratio_history) >= 100 and running_avg <= 1.05:
                 print(f"Environment solved in {episode+1} episodes!")
                 self.meta['env_solved'] = True
                 if self.save:

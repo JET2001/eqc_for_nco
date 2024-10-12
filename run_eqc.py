@@ -10,8 +10,8 @@ from config import BASE_PATH
 
 hyperparams = {
     'n_vars': 10, # length of tour
-    'episodes': 5000, # total episodes
-    'batch_size': 20, # DQN batch size
+    'episodes': 1000, # total episodes
+    'batch_size': 10, # DQN batch size
     'epsilon': 1, # epsilon greedy policy? 
     'epsilon_decay': 0.99, # eps greedy decay
     'epsilon_min': 0.01, # eps greedy min

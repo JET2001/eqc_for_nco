@@ -56,14 +56,14 @@ def hardware_efficient_circuit(
                               qubits[edge[1]]))
 
                 circuit.append(cirq.rz(edge_weights[edge_ix])(qubits[edge[1]]))
-
+                
                 circuit.append(
                     cirq.CNOT(qubits[edge[0]],
                               qubits[edge[1]]))
 
         for qubit_ix, qubit in enumerate(qubits):
             circuit += cirq.ry(params[layer].pop())(qubit)
-
+            
         for i in range(0, n_qubits):
             circuit += cirq.CZ(qubits[i], qubits[(i + 1) % n_qubits])
 
